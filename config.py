@@ -21,6 +21,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Models that participate in the council (Stage 1 opinions + Stage 2 rankings)
 # IMPORTANT: Total council size (members + chairman) must be ODD for tiebreaker votes
+# By default, chairman is NOT in council (4 members + 1 separate chairman = 5, odd)
 # Add/remove models as needed. More models = more diverse opinions but higher cost.
 
 COUNCIL_MODELS = [
@@ -55,11 +56,13 @@ CHAIRMAN_TIEBREAKER_ENABLED = True  # Chairman casts deciding vote on splits
 # =============================================================================
 
 # Pool of models eligible for chairmanship (Stage 3 synthesis)
+# IMPORTANT: By default, chairman should NOT be in COUNCIL_MODELS to ensure odd total
+# These are separate "judge" models that only synthesize, not participate in Stage 1/2
 CHAIRMAN_POOL = [
-    "google/gemini-2.5-pro",
-    "anthropic/claude-sonnet-4",
-    "openai/gpt-4.1",
-    "moonshotai/kimi-k2",
+    "deepseek/deepseek-chat",        # Cheap, good synthesis
+    "x-ai/grok-3",                   # Alternative perspective
+    "mistralai/mistral-large-2",     # European perspective
+    "qwen/qwen3-235b-a22b",          # Large MoE model
 ]
 
 # Rotation settings
@@ -67,7 +70,7 @@ CHAIRMAN_ROTATION_ENABLED = True
 CHAIRMAN_ROTATION_DAYS = 7  # Rotate every N days
 
 # Default chairman when rotation is disabled
-DEFAULT_CHAIRMAN = "google/gemini-2.5-pro"
+DEFAULT_CHAIRMAN = "deepseek/deepseek-chat"
 
 # Title generation model (fast and cheap)
 TITLE_MODEL = "google/gemini-2.5-flash"
@@ -76,14 +79,16 @@ TITLE_MODEL = "google/gemini-2.5-flash"
 # CONTEXT-BASED CHAIRMAN PRESETS
 # =============================================================================
 
-# Use these with chairman="code" etc. in tool calls
+# Use these with chairman_preset="code" etc. in tool calls
+# NOTE: These override the default chairman - may result in even council if preset
+# model is also in COUNCIL_MODELS. Use explicit chairman= for full control.
 CHAIRMAN_PRESETS = {
-    "default": "google/gemini-2.5-pro",
-    "code": "anthropic/claude-sonnet-4",      # Strong at code synthesis
-    "creative": "openai/gpt-4.1",             # Good narrative voice
-    "reasoning": "moonshotai/kimi-k2",        # Strong chain-of-thought
-    "concise": "deepseek/deepseek-chat",      # Tends to be brief
-    "balanced": "google/gemini-2.5-pro",      # Well-rounded
+    "default": "deepseek/deepseek-chat",
+    "code": "deepseek/deepseek-chat",         # Good at code, cheap
+    "creative": "x-ai/grok-3",                # Creative synthesis
+    "reasoning": "qwen/qwen3-235b-a22b",      # Strong chain-of-thought
+    "concise": "deepseek/deepseek-chat",      # Brief answers
+    "balanced": "mistralai/mistral-large-2",  # Well-rounded
 }
 
 # =============================================================================
