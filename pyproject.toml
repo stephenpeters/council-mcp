@@ -22,8 +22,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/council-mcp"
-Repository = "https://github.com/YOUR_USERNAME/council-mcp"
+Homepage = "https://github.com/stephenpeters/council-mcp"
+Repository = "https://github.com/stephenpeters/council-mcp"
 
 [project.scripts]
 council-mcp = "server:main"

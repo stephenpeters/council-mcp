@@ -57,7 +57,7 @@ The council operates in up to 3 stages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/council-mcp.git
+git clone https://github.com/stephenpeters/council-mcp.git
 cd council-mcp
 
 # Create .env file with your API key
