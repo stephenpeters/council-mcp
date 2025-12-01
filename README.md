@@ -69,7 +69,17 @@ uv sync
 
 ### Configure Claude Desktop
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+#### Option 1: Desktop Extensions (Recommended)
+
+1. Open Claude Desktop
+2. Go to **Settings > Extensions > Advanced settings > Install Extension...**
+3. Navigate to the `council-mcp` directory
+4. Follow prompts to configure your `OPENROUTER_API_KEY`
+5. Restart Claude Desktop
+
+#### Option 2: Manual Config
+
+Open Claude Desktop, go to **Settings > Developer > Edit Config**, and add the following to `claude_desktop_config.json`:
 
 ```json
 {
@@ -85,21 +95,33 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
+Replace `/path/to/council-mcp` with your actual path, save, and restart Claude Desktop.
+
 ### Configure Claude Code
 
-Add to your Claude Code MCP settings:
+Add the server using the CLI:
+
+```bash
+claude mcp add --transport stdio council -- uv run --directory /path/to/council-mcp python server.py --env OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
+
+Or create a `.mcp.json` file in your project root:
 
 ```json
 {
-  "council": {
-    "command": "uv",
-    "args": ["run", "--directory", "/path/to/council-mcp", "python", "server.py"],
-    "env": {
-      "OPENROUTER_API_KEY": "sk-or-v1-your-key-here"
+  "mcpServers": {
+    "council": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/council-mcp", "python", "server.py"],
+      "env": {
+        "OPENROUTER_API_KEY": "sk-or-v1-your-key-here"
+      }
     }
   }
 }
 ```
+
+Verify with `/mcp` in Claude Code or `claude mcp list` in terminal.
 
 ## Available Tools
 
