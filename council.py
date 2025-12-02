@@ -666,9 +666,9 @@ async def run_council_ranked(
 
 async def run_council_full(
     user_query: str,
-    models: list[str] = None,
-    chairman: str = None,
-    chairman_preset: str = None,
+    models: list[str] | None = None,
+    chairman: str | None = None,
+    chairman_preset: str | None = None,
 ) -> dict:
     """
     Full council: All 3 stages with final synthesis.

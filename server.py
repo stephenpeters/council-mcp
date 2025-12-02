@@ -12,16 +12,10 @@ Tools:
 - council_estimate: Estimate cost before running
 """
 
-import asyncio
 import json
-from typing import Any
+from typing import Optional
 
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import (
-    Tool,
-    TextContent,
-)
+from mcp.server.fastmcp import FastMCP
 
 from config import (
     OPENROUTER_API_KEY,
@@ -43,176 +37,140 @@ from council import (
     run_council_full,
 )
 
-# Initialize MCP server
-server = Server("llm-council")
+# Initialize FastMCP server
+mcp = FastMCP("llm-council")
 
 
 # =============================================================================
-# TOOL DEFINITIONS
+# TOOLS
 # =============================================================================
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available council tools."""
-    return [
-        Tool(
-            name="council_quick",
-            description="""Query the LLM council for quick parallel opinions (Stage 1 only).
+@mcp.tool()
+async def council_quick(question: str, tier: str = "standard") -> str:
+    """Query the LLM council for quick parallel opinions (Stage 1 only).
 
-Fast and cheap - queries all council models in parallel and returns their individual responses.
-No peer ranking or synthesis. Good for getting diverse perspectives quickly.
+    Fast and cheap - queries all council models in parallel and returns their
+    individual responses. No peer ranking or synthesis. Good for getting
+    diverse perspectives quickly.
 
-Use 'tier' to select model quality: "premium" (frontier), "standard" (default), "budget" (cheap/fast)
+    Args:
+        question: The question to ask the council
+        tier: Model tier - "premium" (frontier), "standard" (default), "budget" (cheap/fast)
 
-Cost: budget ~$0.01, standard ~$0.02, premium ~$0.10 per query""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "The question to ask the council",
-                    },
-                    "tier": {
-                        "type": "string",
-                        "enum": ["premium", "standard", "budget"],
-                        "description": "Model tier: premium (complex), standard (default), budget (simple)",
-                    },
-                },
-                "required": ["question"],
-            },
-        ),
-        Tool(
-            name="council_ranked",
-            description="""Query the LLM council with peer rankings (Stage 1 + 2).
+    Returns:
+        Individual responses from each council model
+    """
+    if not question:
+        return "Error: 'question' is required"
 
-Medium cost - gets individual opinions, then has each model anonymously evaluate
-and rank all responses. Returns aggregate "street cred" scores showing which
-models performed best on this specific question.
+    if not OPENROUTER_API_KEY:
+        return "Error: OPENROUTER_API_KEY not configured"
 
-Use 'tier' to select model quality: "premium" (frontier), "standard" (default), "budget" (cheap/fast)
+    if tier not in ("premium", "standard", "budget"):
+        tier = "standard"
 
-Cost: budget ~$0.03, standard ~$0.08, premium ~$0.25 per query""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "The question to ask the council",
-                    },
-                    "tier": {
-                        "type": "string",
-                        "enum": ["premium", "standard", "budget"],
-                        "description": "Model tier: premium (complex), standard (default), budget (simple)",
-                    },
-                },
-                "required": ["question"],
-            },
-        ),
-        Tool(
-            name="council_full",
-            description="""Run the full LLM council with synthesis (all 3 stages).
+    models = get_council_by_tier(tier)
 
-Most comprehensive - collects opinions, peer rankings, then has a Chairman model
-synthesize the best possible answer from the collective wisdom.
-
-Use 'tier' for model quality: "premium" (frontier models for complex questions),
-"standard" (default), "budget" (cheap/fast for simple questions)
-
-Use 'chairman' to override chairman model, or 'chairman_preset' for context-based
-selection: "code", "creative", "reasoning", "concise", "balanced"
-
-Cost: budget ~$0.05, standard ~$0.15, premium ~$0.40 per query""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "The question to ask the council",
-                    },
-                    "tier": {
-                        "type": "string",
-                        "enum": ["premium", "standard", "budget"],
-                        "description": "Model tier: premium (complex), standard (default), budget (simple)",
-                    },
-                    "chairman": {
-                        "type": "string",
-                        "description": "Optional: Override chairman model (e.g., 'anthropic/claude-sonnet-4')",
-                    },
-                    "chairman_preset": {
-                        "type": "string",
-                        "enum": ["code", "creative", "reasoning", "concise", "balanced"],
-                        "description": "Optional: Use a context-based chairman preset",
-                    },
-                },
-                "required": ["question"],
-            },
-        ),
-        Tool(
-            name="council_config",
-            description="""View current council configuration.
-
-Shows:
-- Council member models
-- Current chairman (with rotation info)
-- Available chairman presets
-- API key status""",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-            },
-        ),
-        Tool(
-            name="council_estimate",
-            description="""Estimate cost for a council query before running it.
-
-Provides approximate cost breakdown for quick/ranked/full tiers.""",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "The question (used to estimate token count)",
-                    },
-                    "tier": {
-                        "type": "string",
-                        "enum": ["quick", "ranked", "full"],
-                        "description": "Which tier to estimate (default: all)",
-                    },
-                },
-                "required": ["question"],
-            },
-        ),
-    ]
+    try:
+        result = await run_council_quick(question, models=models)
+        result["tier"] = tier
+        return format_quick_result(result)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
-# =============================================================================
-# TOOL HANDLERS
-# =============================================================================
+@mcp.tool()
+async def council_ranked(question: str, tier: str = "standard") -> str:
+    """Query the LLM council with peer rankings (Stage 1 + 2).
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    """Handle tool calls."""
+    Medium cost - gets individual opinions, then has each model anonymously
+    evaluate and rank all responses. Returns aggregate "street cred" scores
+    showing which models performed best on this specific question.
 
-    if name == "council_config":
-        return await handle_config()
+    Args:
+        question: The question to ask the council
+        tier: Model tier - "premium" (frontier), "standard" (default), "budget" (cheap/fast)
 
-    if name == "council_estimate":
-        return await handle_estimate(arguments)
+    Returns:
+        Individual responses plus aggregate rankings
+    """
+    if not question:
+        return "Error: 'question' is required"
 
-    if name == "council_quick":
-        return await handle_quick(arguments)
+    if not OPENROUTER_API_KEY:
+        return "Error: OPENROUTER_API_KEY not configured"
 
-    if name == "council_ranked":
-        return await handle_ranked(arguments)
+    if tier not in ("premium", "standard", "budget"):
+        tier = "standard"
 
-    if name == "council_full":
-        return await handle_full(arguments)
+    models = get_council_by_tier(tier)
 
-    return [TextContent(type="text", text=f"Unknown tool: {name}")]
+    try:
+        result = await run_council_ranked(question, models=models)
+        result["tier"] = tier
+        return format_ranked_result(result)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
-async def handle_config() -> list[TextContent]:
-    """Return current configuration."""
+@mcp.tool()
+async def council_full(
+    question: str,
+    tier: str = "standard",
+    chairman: Optional[str] = None,
+    chairman_preset: Optional[str] = None,
+) -> str:
+    """Run the full LLM council with synthesis (all 3 stages).
+
+    Most comprehensive - collects opinions, peer rankings, then has a Chairman
+    model synthesize the best possible answer from the collective wisdom.
+
+    Args:
+        question: The question to ask the council
+        tier: Model tier - "premium" (complex), "standard" (default), "budget" (simple)
+        chairman: Override chairman model (e.g., 'anthropic/claude-sonnet-4')
+        chairman_preset: Use a context-based preset - "code", "creative", "reasoning", "concise", "balanced"
+
+    Returns:
+        Chairman's synthesis, consensus level, rankings, and individual responses
+    """
+    if not question:
+        return "Error: 'question' is required"
+
+    if not OPENROUTER_API_KEY:
+        return "Error: OPENROUTER_API_KEY not configured"
+
+    if tier not in ("premium", "standard", "budget"):
+        tier = "standard"
+
+    if chairman_preset and chairman_preset not in CHAIRMAN_PRESETS:
+        return f"Error: Invalid chairman_preset. Valid options: {list(CHAIRMAN_PRESETS.keys())}"
+
+    models = get_council_by_tier(tier)
+
+    try:
+        result = await run_council_full(
+            question,
+            models=models,
+            chairman=chairman,
+            chairman_preset=chairman_preset,
+        )
+        result["tier"] = tier
+        return format_full_result(result)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@mcp.tool()
+async def council_config() -> str:
+    """View current council configuration.
+
+    Shows council member models, current chairman with rotation info,
+    available chairman presets, consensus thresholds, and API key status.
+
+    Returns:
+        Current configuration as formatted JSON
+    """
     rotation_info = get_rotation_info()
     size_validation = validate_council_size()
 
@@ -241,21 +199,26 @@ async def handle_config() -> list[TextContent]:
         "presets": CHAIRMAN_PRESETS,
     }
 
-    return [TextContent(
-        type="text",
-        text=f"## LLM Council Configuration\n\n```json\n{json.dumps(config, indent=2)}\n```",
-    )]
+    return f"## LLM Council Configuration\n\n```json\n{json.dumps(config, indent=2)}\n```"
 
 
-async def handle_estimate(arguments: dict) -> list[TextContent]:
-    """Estimate costs for a query."""
-    question = arguments.get("question", "")
-    tier = arguments.get("tier")
+@mcp.tool()
+async def council_estimate(question: str, tier: Optional[str] = None) -> str:
+    """Estimate cost for a council query before running it.
 
+    Provides approximate cost breakdown for quick/ranked/full query types.
+
+    Args:
+        question: The question (used to estimate token count)
+        tier: Which tier to estimate - "quick", "ranked", "full" (default: all)
+
+    Returns:
+        Cost estimates for each query type
+    """
     # Rough token estimate (4 chars per token)
     query_tokens = len(question) // 4 + 50
 
-    tiers_to_estimate = [tier] if tier else ["quick", "ranked", "full"]
+    tiers_to_estimate = [tier] if tier in ("quick", "ranked", "full") else ["quick", "ranked", "full"]
 
     estimates = {}
     for t in tiers_to_estimate:
@@ -271,80 +234,7 @@ async def handle_estimate(arguments: dict) -> list[TextContent]:
 
     output += f"_Estimates based on ~{query_tokens} input tokens. Actual costs may vary._"
 
-    return [TextContent(type="text", text=output)]
-
-
-async def handle_quick(arguments: dict) -> list[TextContent]:
-    """Run quick council (Stage 1 only)."""
-    question = arguments.get("question")
-    tier = arguments.get("tier", "standard")
-
-    if not question:
-        return [TextContent(type="text", text="Error: 'question' is required")]
-
-    if not OPENROUTER_API_KEY:
-        return [TextContent(type="text", text="Error: OPENROUTER_API_KEY not configured")]
-
-    # Get models for selected tier
-    models = get_council_by_tier(tier)
-
-    try:
-        result = await run_council_quick(question, models=models)
-        result["tier"] = tier
-        return [TextContent(type="text", text=format_quick_result(result))]
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-
-async def handle_ranked(arguments: dict) -> list[TextContent]:
-    """Run ranked council (Stage 1 + 2)."""
-    question = arguments.get("question")
-    tier = arguments.get("tier", "standard")
-
-    if not question:
-        return [TextContent(type="text", text="Error: 'question' is required")]
-
-    if not OPENROUTER_API_KEY:
-        return [TextContent(type="text", text="Error: OPENROUTER_API_KEY not configured")]
-
-    # Get models for selected tier
-    models = get_council_by_tier(tier)
-
-    try:
-        result = await run_council_ranked(question, models=models)
-        result["tier"] = tier
-        return [TextContent(type="text", text=format_ranked_result(result))]
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-
-async def handle_full(arguments: dict) -> list[TextContent]:
-    """Run full council (all 3 stages)."""
-    question = arguments.get("question")
-    tier = arguments.get("tier", "standard")
-    chairman = arguments.get("chairman")
-    chairman_preset = arguments.get("chairman_preset")
-
-    if not question:
-        return [TextContent(type="text", text="Error: 'question' is required")]
-
-    if not OPENROUTER_API_KEY:
-        return [TextContent(type="text", text="Error: OPENROUTER_API_KEY not configured")]
-
-    # Get models for selected tier
-    models = get_council_by_tier(tier)
-
-    try:
-        result = await run_council_full(
-            question,
-            models=models,
-            chairman=chairman,
-            chairman_preset=chairman_preset,
-        )
-        result["tier"] = tier
-        return [TextContent(type="text", text=format_full_result(result))]
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
+    return output
 
 
 # =============================================================================
@@ -466,15 +356,5 @@ def format_full_result(result: dict) -> str:
 # MAIN
 # =============================================================================
 
-async def main():
-    """Run the MCP server."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options(),
-        )
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    mcp.run(transport='stdio')
