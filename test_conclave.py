@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Test script for council-mcp.
+Test script for conclave-mcp.
 
-Run with: python test_council.py
+Run with: python test_conclave.py
 
 Requires OPENROUTER_API_KEY in .env or environment.
 """

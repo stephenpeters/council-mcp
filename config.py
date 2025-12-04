@@ -81,12 +81,13 @@ CHAIRMAN_TIEBREAKER_ENABLED = True  # Chairman casts deciding vote on splits
 
 # Pool of models eligible for chairmanship (Stage 3 synthesis)
 # IMPORTANT: By default, chairman should NOT be in COUNCIL_MODELS to ensure odd total
-# These are separate "judge" models that only synthesize, not participate in Stage 1/2
+# These are reasoning/thinking models (not chat models) for quality synthesis
+# Updated December 4, 2025 - using reasoning models only
 CHAIRMAN_POOL = [
-    "deepseek/deepseek-chat",        # Cheap, good synthesis
-    "x-ai/grok-3",                   # Alternative perspective
-    "mistralai/mistral-large-2",     # European perspective
-    "qwen/qwen3-235b-a22b",          # Large MoE model
+    "deepseek/deepseek-r1",              # DeepSeek R1 reasoning model
+    "openai/o3-mini",                    # OpenAI o3-mini reasoning
+    "anthropic/claude-sonnet-4",         # Claude Sonnet 4 (strong reasoning, not in tiers)
+    "qwen/qwq-32b",                      # Qwen QWQ reasoning model (32B)
 ]
 
 # Rotation settings
@@ -94,7 +95,7 @@ CHAIRMAN_ROTATION_ENABLED = True
 CHAIRMAN_ROTATION_DAYS = 7  # Rotate every N days
 
 # Default chairman when rotation is disabled
-DEFAULT_CHAIRMAN = "deepseek/deepseek-chat"
+DEFAULT_CHAIRMAN = "deepseek/deepseek-r1"
 
 # Title generation model (fast and cheap)
 TITLE_MODEL = "google/gemini-2.5-flash"
@@ -106,13 +107,14 @@ TITLE_MODEL = "google/gemini-2.5-flash"
 # Use these with chairman_preset="code" etc. in tool calls
 # NOTE: These override the default chairman - may result in even council if preset
 # model is also in COUNCIL_MODELS. Use explicit chairman= for full control.
+# Updated December 4, 2025 - all presets use reasoning models
 CHAIRMAN_PRESETS = {
-    "default": "deepseek/deepseek-chat",
-    "code": "deepseek/deepseek-chat",         # Good at code, cheap
-    "creative": "x-ai/grok-3",                # Creative synthesis
-    "reasoning": "qwen/qwen3-235b-a22b",      # Strong chain-of-thought
-    "concise": "deepseek/deepseek-chat",      # Brief answers
-    "balanced": "mistralai/mistral-large-2",  # Well-rounded
+    "default": "deepseek/deepseek-r1",        # DeepSeek R1 reasoning
+    "code": "deepseek/deepseek-r1",           # Excellent at code reasoning
+    "creative": "anthropic/claude-sonnet-4",  # Creative synthesis with reasoning
+    "reasoning": "openai/o3-mini",            # OpenAI reasoning model
+    "concise": "qwen/qwq-32b",                # QWQ reasoning (efficient)
+    "balanced": "deepseek/deepseek-r1",       # Well-rounded reasoning
 }
 
 # =============================================================================
@@ -148,11 +150,11 @@ MODEL_COSTS = {
     "deepseek/deepseek-chat-v3-0324:free": (0.0, 0.0),  # Free tier
     "openai/gpt-4.1-mini": (0.0004, 0.0016),
     "qwen/qwen3-32b": (0.0003, 0.0003),
-    # Chairman pool
-    "deepseek/deepseek-chat": (0.00014, 0.00028),
-    "x-ai/grok-3": (0.003, 0.015),
-    "mistralai/mistral-large-2": (0.002, 0.006),
-    "qwen/qwen3-235b-a22b": (0.0003, 0.0003),
+    # Chairman pool (reasoning models)
+    "deepseek/deepseek-r1": (0.00055, 0.00219),       # DeepSeek R1 reasoning
+    "openai/o3-mini": (0.0011, 0.0044),               # OpenAI o3-mini reasoning
+    "anthropic/claude-sonnet-4": (0.003, 0.015),      # Claude Sonnet 4
+    "qwen/qwq-32b": (0.00015, 0.0006),                # Qwen QWQ reasoning
 }
 
 # Default cost for unknown models

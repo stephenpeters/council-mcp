@@ -200,15 +200,17 @@ COUNCIL_BUDGET = [
 
 ### Chairman Rotation
 
+The chairman pool uses **reasoning models only** (not chat models) for high-quality synthesis:
+
 ```python
 CHAIRMAN_ROTATION_ENABLED = True
 CHAIRMAN_ROTATION_DAYS = 7  # Rotate weekly
 
 CHAIRMAN_POOL = [
-    "deepseek/deepseek-chat",
-    "x-ai/grok-3",
-    "mistralai/mistral-large-2",
-    "qwen/qwen3-235b-a22b",
+    "deepseek/deepseek-r1",          # DeepSeek R1 reasoning
+    "openai/o3-mini",                # OpenAI o3-mini reasoning
+    "anthropic/claude-sonnet-4",     # Claude Sonnet 4 (strong reasoning)
+    "qwen/qwq-32b",                  # Qwen QWQ reasoning model
 ]
 ```
 
@@ -298,7 +300,7 @@ Results are saved to `evals/eval_<tier>_<mode>_<timestamp>.json` with:
 📊 EVAL SUMMARY
 ==================================================
 Tier: standard | Mode: full
-Chairman: deepseek/deepseek-chat
+Chairman: deepseek/deepseek-r1
 Tasks: 16/16 successful
 Total time: 287.45s
 Avg per task: 17.97s
@@ -346,7 +348,7 @@ Then compare the JSON outputs to see how different model tiers perform on the sa
 
 ### Chairman's Synthesis
 
-_Chairman: deepseek/deepseek-chat_
+_Chairman: deepseek/deepseek-r1_
 
 [Synthesized answer incorporating best points from all models...]
 
