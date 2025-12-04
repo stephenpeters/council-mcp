@@ -162,6 +162,65 @@ View current configuration: conclave members, chairman rotation status, consensu
 
 Estimate costs before running a query.
 
+### `conclave_models`
+
+List all available models with selection numbers. Shows models grouped by tier with stable numbering:
+- Premium tier: 1-10
+- Standard tier: 11-20
+- Budget tier: 21-30
+- Chairman pool: 31-40
+
+### `conclave_select`
+
+Create a custom conclave from model numbers. The first model becomes the chairman.
+
+```
+conclave_select(models="31,1,11,21")
+```
+
+Creates:
+- Chairman: #31 (deepseek-r1)
+- Members: #1 (claude-opus-4.5), #11 (claude-sonnet-4.5), #21 (gemini-2.5-flash)
+
+Custom selection persists until server restart or `conclave_reset`.
+
+### `conclave_reset`
+
+Clear custom conclave selection and return to tier-based configuration.
+
+## Custom Model Selection
+
+For full control over which models participate in the conclave:
+
+1. **List available models**: Use `conclave_models` to see all models with their numbers
+2. **Select your lineup**: Use `conclave_select(models="31,1,11,21")` - first number is chairman
+3. **Query**: Use `conclave_quick`, `conclave_ranked`, or `conclave_full` as normal
+4. **Reset**: Use `conclave_reset` to return to tier-based config
+
+**Example workflow**:
+```
+> conclave_models
+## Available Models
+### Premium Tier (1-10)
+   1. anthropic/claude-opus-4.5
+   2. google/gemini-3-pro-preview
+   ...
+
+> conclave_select(models="31,1,12,21")
+## Custom Conclave Created
+Chairman (#31): deepseek/deepseek-r1
+Members:
+  - #1: anthropic/claude-opus-4.5
+  - #12: google/gemini-2.5-pro
+  - #21: google/gemini-2.5-flash
+
+> conclave_quick("What is the best approach for...")
+[Uses your custom selection]
+
+> conclave_reset
+## Custom Conclave Cleared
+```
+
 ## Configuration
 
 Edit `config.py` to customize:
@@ -175,7 +234,7 @@ Each tier has unique models (no overlap) for proper price/performance differenti
 COUNCIL_PREMIUM = [
     "anthropic/claude-opus-4.5",        # Claude Opus 4.5
     "google/gemini-3-pro-preview",      # Gemini 3 Pro
-    "x-ai/grok-4.1",                    # Grok 4.1 (full reasoning)
+    "x-ai/grok-4",                      # Grok 4 (full reasoning)
     "openai/gpt-5.1",                   # GPT-5.1 (flagship)
     "deepseek/deepseek-v3.2-speciale",  # DeepSeek V3.2 Speciale
     "moonshotai/kimi-k2-thinking",      # Kimi K2 Thinking (1T MoE)
@@ -186,15 +245,15 @@ COUNCIL_STANDARD = [
     "anthropic/claude-sonnet-4.5",      # Claude Sonnet 4.5
     "google/gemini-2.5-pro",            # Gemini 2.5 Pro
     "openai/o4-mini",                   # OpenAI o4-mini
-    "deepseek/deepseek-v3.1",           # DeepSeek V3.1 Terminus
+    "deepseek/deepseek-chat-v3.1",      # DeepSeek Chat V3.1
 ]
 
 # Budget: 4 cheap/fast models (~$0.02-0.05/query)
 COUNCIL_BUDGET = [
     "google/gemini-2.5-flash",          # Gemini 2.5 Flash
-    "x-ai/grok-4.1-fast:free",          # Grok 4.1 Fast (free tier)
+    "qwen/qwen3-235b-a22b:free",        # Qwen 3 235B (free tier)
     "openai/gpt-4.1-mini",              # GPT-4.1 Mini
-    "deepseek/deepseek-chat-v3-0324:free",  # DeepSeek Chat (free)
+    "moonshotai/kimi-k2:free",          # Kimi K2 (free tier)
 ]
 ```
 

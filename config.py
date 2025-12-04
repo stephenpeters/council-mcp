@@ -26,7 +26,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 COUNCIL_PREMIUM = [
     "anthropic/claude-opus-4.5",             # Claude Opus 4.5 (Nov 2025, 80.9% SWE-bench)
     "google/gemini-3-pro-preview",           # Gemini 3 Pro (Nov 2025, #1 LMArena 1501 Elo)
-    "x-ai/grok-4.1",                         # Grok 4.1 (full reasoning, not fast variant)
+    "x-ai/grok-4",                            # Grok 4 (full reasoning, not fast variant)
     "openai/gpt-5.1",                        # GPT-5.1 (flagship reasoning)
     "deepseek/deepseek-v3.2-speciale",       # DeepSeek V3.2 Speciale (IMO gold, highest compute)
     "moonshotai/kimi-k2-thinking",           # Kimi K2 Thinking (1T MoE, 256k context, agentic)
@@ -39,7 +39,7 @@ COUNCIL_STANDARD = [
     "anthropic/claude-sonnet-4.5",           # Claude Sonnet 4.5 (1M context)
     "google/gemini-2.5-pro",                 # Gemini 2.5 Pro (still excellent)
     "openai/o4-mini",                        # OpenAI o4-mini (best reasoning/cost)
-    "deepseek/deepseek-v3.1",                # DeepSeek V3.1 Terminus (agent-era model)
+    "deepseek/deepseek-chat-v3.1",           # DeepSeek Chat V3.1 (agent-era model)
 ]
 
 # Budget council for simple questions (quick checks, brainstorming)
@@ -47,9 +47,9 @@ COUNCIL_STANDARD = [
 # Updated December 4, 2025
 COUNCIL_BUDGET = [
     "google/gemini-2.5-flash",               # Gemini 2.5 Flash (fast, cheap)
-    "x-ai/grok-4.1-fast:free",               # Grok 4.1 Fast free tier
+    "qwen/qwen3-235b-a22b:free",             # Qwen 3 235B (free tier)
     "openai/gpt-4.1-mini",                   # GPT-4.1 Mini (cheap)
-    "deepseek/deepseek-chat-v3-0324:free",   # DeepSeek Chat V3 (free)
+    "moonshotai/kimi-k2:free",               # Kimi K2 (free tier)
 ]
 
 # Active council (change this to switch tiers, or use tier= parameter in tools)
@@ -128,7 +128,7 @@ MODEL_COSTS = {
     # Premium tier (Dec 2025 frontier)
     "anthropic/claude-opus-4.5": (0.005, 0.025),       # Opus 4.5 (Nov 2025)
     "google/gemini-3-pro-preview": (0.00125, 0.01),   # Gemini 3 Pro (Nov 2025)
-    "x-ai/grok-4.1": (0.003, 0.015),                  # Grok 4.1 full (reasoning)
+    "x-ai/grok-4": (0.003, 0.015),                    # Grok 4 full (reasoning)
     "openai/gpt-5.1": (0.005, 0.015),                 # GPT 5.1 (flagship)
     "deepseek/deepseek-v3.2-speciale": (0.0003, 0.0006),  # V3.2 Speciale (high compute)
     "moonshotai/kimi-k2-thinking": (0.0006, 0.002),   # Kimi K2 Thinking (1T MoE)
